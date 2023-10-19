@@ -4,11 +4,9 @@ import math
 
 def vectorCoordProperty(i):
     def getx(self):
-        #print('getting',i)
         return self.coords[i]
     
     def setx(self, value):
-        #print('setting',i,'to',value)
         self.coords[i] = value
 
     return property(getx, setx)
@@ -17,15 +15,13 @@ class Vector():
 
     def __init__(self, *coords):
         """Create a Vector(x, y, z, ...) or use a list or A dictionary, really anything"""
-        #self.letters = 'xyzwabcdefghijklmnopqrstuv'
         
         if len(coords)==1:
-            coords = coords[0]
-            if isinstance(coords, dict):
-                coords = self.dictToArr(coords)
-                #coords = coords.values()
-            else:
-                coords = coords.copy()
+            elem = coords[0]
+            if isinstance(elem, dict):
+                coords = self.dictToArr(elem)
+            elif not (isinstance(elem, int) or isinstance(elem, float)):
+                coords = elem.copy()
         
         self.coords = list(coords)
 
@@ -82,15 +78,6 @@ class Vector():
         return v
     
     def __eq__(self, v):
-        """
-        v = self.varToVec(v)
-        b = True
-        for i in range(max(len(self.coords), len(v.coords))):
-            va = self.coords[i] if i<len(self.coords) else 0
-            vb = v.coords[i] if i<len(v.coords) else 0
-            b = b and (va==vb)
-        return b
-        """
         return hash(self)==v
 
     def __neg__(self):
@@ -227,11 +214,6 @@ class Vector():
         return self<v or self==v
     def __ge__(self, v):
         return self>v or self==v
-
-    def __rlt__(self, v):
-        a = var
-        print(0)
-        return 345678
 
     def append(self, *values) -> Vector:
         """Appends one or multiple new coordinate(s) to the vector:
