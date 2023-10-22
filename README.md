@@ -123,13 +123,28 @@ Vector3(1, 2, 3)
 ```
 
 ## Comparison
-Operators such as ```==``` ```!=``` are self-explanatory,  
+Operators such as ```==``` ```!=``` are self-explanatory,
+```py
+a = Vector(1,2,3)
+b = Vector(3,3,3)
+c = Vector(2,1,0)
+print(a == b-c)
+```
+```py
+>>> True
+```
+
 But some aren't really black and white:
 
 - **Ambigous operators:**
 
 ```bool(foo)``` will always return ```True```  
 > if (Vector(0)): True
+
+This allows simpler boolean operations:
+```py
+vec and "Correct" or "Incorrect"
+```
 
 ```a>b``` will return ```sum(a)>sum(b)``` (sum of all coordinates)  
 > Vector(-8,8) > Vector(1) = False
@@ -174,6 +189,63 @@ Vector2(1, 2) Vector2(1, 2) Vector2(1, 2) Vector2(1, 2)
 Vector2(0, 2)
 ```
 
+## Methods:
+
+### bounds(*vectors):  
+Returns the minimum and maximum vectors of all given vectors:  
+-> (min: Vector, max: Vector)
+```py
+a = Vector(1,2,3)
+b = Vector(3,3,2)
+c = Vector(2,1,0)
+print(a.bounds(b,c)) # using self
+print(Vector.bounds(a,b,c))
+```
+```py
+>>> (Vector3(1, 1, 0), Vector3(3, 3, 3))
+>>> (Vector3(1, 1, 0), Vector3(3, 3, 3))
+```
+
+### dot(*vectors):  
+(<=> length of a vector)  
+Dot vectors of one or multiple vectors:  
+-> scalar: int
+```py
+a = Vector(1,2,3)
+b = Vector(3,3,2)
+print(a.dot(b))
+```
+```py
+>>> 15
+```
+
+### cross(vecA, vecB):  
+⚠️ Only for **Vector3**  
+Cross product of 2 Vectors:
+-> crossed: Vector  
+<img src="http://mechanicsmap.psu.edu/websites/A1_vector_math/A1-4_crossproduct/images/crossproduct.png" alt="cross image" height="150"/>
+```py
+a = Vector(1,2,3)
+b = Vector(3,3,2)
+print(a.cross(b))
+```
+```py
+>>> Vector3(-5, 7, -3)
+```
+
+### angle(vecA, vecB):  
+⚠️ Only for **Vector2**  
+Returns the angle between 2 vectors:  
+-> radians: float  
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoq798oPzBN9PSLUTh2UDNUC7DAutz24nVoL--BFgaem3hnzsFx2E9lzpR5khRtN2jWRw&usqp=CAU" alt="cross image" height="150"/>
+```py
+a = Vector(1,2,3)
+b = Vector(3,3,2)
+print(a.cross(b))
+```
+```py
+>>> Vector3(-5, 7, -3)
+```
 
 ## Pointer [WIP]
 ***[Only supported in 2D for now]***  
