@@ -223,7 +223,8 @@ print(a.dot(b))
 ⚠️ Only for **Vector3**  
 Cross product of 2 Vectors:
 -> crossed: Vector  
-<img src="http://mechanicsmap.psu.edu/websites/A1_vector_math/A1-4_crossproduct/images/crossproduct.png" alt="cross image" height="150"/>
+
+<img src="http://mechanicsmap.psu.edu/websites/A1_vector_math/A1-4_crossproduct/images/crossproduct.png" height="150"/>  
 ```py
 a = Vector(1,2,3)
 b = Vector(3,3,2)
@@ -237,14 +238,16 @@ print(a.cross(b))
 ⚠️ Only for **Vector2**  
 Returns the angle between 2 vectors:  
 -> radians: float  
-<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoq798oPzBN9PSLUTh2UDNUC7DAutz24nVoL--BFgaem3hnzsFx2E9lzpR5khRtN2jWRw&usqp=CAU" alt="cross image" height="150"/>
+
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoq798oPzBN9PSLUTh2UDNUC7DAutz24nVoL--BFgaem3hnzsFx2E9lzpR5khRtN2jWRw&usqp=CAU" height="150"/>
+
 ```py
-a = Vector(1,2,3)
-b = Vector(3,3,2)
-print(a.cross(b))
+a = Vector(1,0)
+b = Vector(0,1)
+print(a.angle(b))
 ```
 ```py
->>> Vector3(-5, 7, -3)
+>>> 1.571 # radians
 ```
 
 ## Pointer [WIP]
