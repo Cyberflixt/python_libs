@@ -250,6 +250,21 @@ print(a.angle(b))
 >>> 1.571 # radians
 ```
 
+### orthogonal(vecA, vecB):
+⚠️ Only for **Vector2**  
+Returns True if both vectors are orthogonal:  
+<=> (vecA.dot(vecB) == 0)  
+-> orthogonal: bool  
+
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIyKMPuZxr6zesRykMGH8k2uSERk2gfiStXw&usqp=CAU" height="150"/>
+
+```py
+print(a.orthogonal(b))
+```
+```py
+>>> True
+```
+
 ## Pointer [WIP]
 ***[Only supported in 2D for now]***  
 An object with a Vector position and a rotation number
