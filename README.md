@@ -250,10 +250,10 @@ print(a.angle(b))
 >>> 1.571 # radians
 ```
 
-### orthogonal(vecA, vecB):
+### orthogonal(vecA, vecB, approx=0):
 ⚠️ Only for **Vector2**  
 Returns True if both vectors are orthogonal:  
-<=> (vecA.dot(vecB) == 0)  
+<=> (vecA.dot(vecB) <= approx)  
 -> orthogonal: bool  
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIyKMPuZxr6zesRykMGH8k2uSERk2gfiStXw&usqp=CAU" height="150"/>
