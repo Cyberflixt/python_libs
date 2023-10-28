@@ -220,7 +220,8 @@ print(a.dot(b))
 ```
 
 ### cross(vecA, vecB):  
-⚠️ Only for **Vector3**  
+> ⚠️ Only for **Vector3**
+
 Cross product of 2 Vectors:
 -> crossed: Vector  
 
@@ -235,7 +236,8 @@ print(a.cross(b))
 ```
 
 ### angle(vecA, vecB):  
-⚠️ Only for **Vector2**  
+> ⚠️ Only for **Vector2**
+
 Returns the angle between 2 vectors:  
 -> radians: float  
 
@@ -251,9 +253,10 @@ print(a.angle(b))
 ```
 
 ### orthogonal(vecA, vecB, approx=0):
-⚠️ Only for **Vector2**  
+> ⚠️ Only for **Vector2**
+
 Returns True if both vectors are orthogonal:  
-<=> (vecA.dot(vecB) <= approx)  
+(<=> vecA.dot(vecB) <= approx)  
 -> orthogonal: bool  
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIyKMPuZxr6zesRykMGH8k2uSERk2gfiStXw&usqp=CAU" height="150"/>
