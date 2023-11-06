@@ -262,10 +262,28 @@ Returns True if both vectors are orthogonal:
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIyKMPuZxr6zesRykMGH8k2uSERk2gfiStXw&usqp=CAU" height="150"/>
 
 ```py
+a = Vector(1,0)
+b = Vector(0,1)
 print(a.orthogonal(b))
 ```
 ```py
 >>> True
+```
+
+
+### lerp(vecA, vecB, time):
+
+Returns the linearly interpolated vector:  
+
+<img src="https://global.discourse-cdn.com/standard17/uploads/threejs/original/3X/2/8/283f0a36481db3e75d00c9fce14a8b169021f37b.png" height="150"/>
+
+```py
+a = Vector(6,3)
+b = Vector(10,1)
+print(a.lerp(b, 0.5))
+```
+```py
+>>> Vector2(8, 2)
 ```
 
 ## Pointer [WIP]
