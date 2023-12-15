@@ -8,8 +8,13 @@ class Matrix:
         
         self.size = None
 
-    def get_index(self, x,y):
-        return x + self.size[0]*y
+        self.id = self.identity
+
+    def get_pos(self, i):
+        return (i//self.size[1], i % self.size[1])
+
+    def get_index(self, y,x):
+        return self.size[1]*y + x
 
     def __getitem__(self, size):
         # Size to array
@@ -31,6 +36,19 @@ class Matrix:
             return self.vals[i]
 
     def __str__(self):
+        # Get minimum spaces for columns
+        spaces_col = []
+        i = 0
+        for x in range(self.size[1]):
+            v = 0
+            for y in range(self.size[0]):
+                le = len(str(self[y,x]))
+                if le>v:
+                    v = le
+                i += 1
+            spaces_col.append(v)
+
+        # Put values in string
         s = ''
         i = 0
         for y in range(self.size[0]):
@@ -43,7 +61,11 @@ class Matrix:
                 s += '| '
                 
             for x in range(self.size[1]):
-                line.append(str(self.vals[i]))
+                v = str(self.vals[i])
+                spaces = spaces_col[x]
+                while len(v)<spaces:
+                    v += ' '
+                line.append(v)
                 i += 1
             s += ', '.join(line)
             
@@ -65,11 +87,70 @@ class Matrix:
         
         r = Matrix([0 for i in range(b.size[0]*b.size[1])])[b.size]
         for y in range(b.size[0]):
-            col = y*b.size[1]
+            col_b = y*b.size[1]
+            col_a = y*a.size[1]
             for x in range(b.size[1]):
                 for i in range(b.size[0]):
-                    r.vals[col+x] += a.vals[col+i] * b.vals[x+i*b.size[1]]
+                    r.vals[col_b+x] += a.vals[col_a+i] * b.vals[i*b.size[1]+x]
         return r
+
+    def copy(self):
+        return Matrix(*self.vals)[self.size]
+
+    def __add__(a,b):
+        vals = []
+
+        sx = max(b.size[0],a.size[0])
+        sy = max(b.size[1],a.size[1])
+        
+        for y in range(sx):
+            col_a = y*a.size[1]
+            col_b = y*b.size[1]
+            for x in range(sy):
+                v = 0
+                if y<a.size[0] and x<a.size[1]:
+                    v += a.vals[y*a.size[1]+x]
+                if y<b.size[0] and x<b.size[1]:
+                    v += b.vals[y*b.size[1]+x]
+                    
+                vals.append(v)
+                
+        return Matrix(vals)[sx,sy]
+    
+    def __sub__(a,b):
+        vals = []
+
+        sx = max(b.size[0],a.size[0])
+        sy = max(b.size[1],a.size[1])
+        
+        for y in range(sx):
+            col_a = y*a.size[1]
+            col_b = y*b.size[1]
+            for x in range(sy):
+                v = 0
+                if y<a.size[0] and x<a.size[1]:
+                    v += a.vals[y*a.size[1]+x]
+                if y<b.size[0] and x<b.size[1]:
+                    v -= b.vals[y*b.size[1]+x]
+                    
+                vals.append(v)
+                
+        return Matrix(vals)[sx,sy]
+
+    def identity(i):
+        if isinstance(i, Matrix):
+            i = max(i.size[0], i.size[1])
+        
+        vals = []
+        for y in range(i):
+            for x in range(i):
+                if x==y:
+                    vals.append(1)
+                else:
+                    vals.append(0)
+
+        return Matrix(vals)[i,i]
+        
             
 
 
@@ -77,7 +158,7 @@ a = Matrix(
     0,1,2,
     3,4,5,
     6,7,8,
-)[3,4]
+)[3,3]
 
 b = Matrix(
     1,2,
@@ -85,5 +166,6 @@ b = Matrix(
     5,6,
 )[3,2]
 
-print(a*b)
-#print(a)
+i = Matrix.identity(3)
+
+print(a.id() * a)
