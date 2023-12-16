@@ -11,6 +11,15 @@ def vectorCoordProperty(i):
 
     return property(getx, setx)
 
+def propertySize():
+    def gets(self):
+        return (len(self.coords), 1)
+
+    def sets(self):
+        raise Exception('You cannot set the size of a vector')
+
+    return property(gets, sets)
+
 class Vector():
 
     def __init__(self, *coords):
@@ -102,13 +111,14 @@ class Vector():
         return Vector(*vals)
 
     def __mul__(self, v):
-        v = self.varToVec(v)
         vals = []
+        # Multiply by whatever
+        v = self.varToVec(v)
         for i in range(max(len(self.coords), len(v.coords))):
             va = self.coords[i] if i<len(self.coords) else 0
             vb = v.coords[i] if i<len(v.coords) else 0
             vals.append(va*vb)
-            
+        
         return Vector(*vals)
 
     def __rmul__(self, v):
@@ -356,6 +366,8 @@ class Vector():
     y = vectorCoordProperty(1)
     z = vectorCoordProperty(2)
     w = vectorCoordProperty(3)
+
+    size = propertySize()
 
     forward = [0,1]
 
