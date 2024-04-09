@@ -14,8 +14,8 @@ class Window:
 
         # Settings
         self.always_refresh = True
+        self.sel_overlay = True
         self.dark_mode = False
-        self.layout = 0
         self.tension_force = 20
         self.tension_exponent = 1
         self.tension_distance = 1
@@ -33,9 +33,9 @@ class Window:
         self.default_palette()
         
         self.run = False
-        self.update = True
         self.drag_node = None
-
+        self.reset_layout = True
+        self.layout = 0
         self.mx = 0
         self.my = 0
 
@@ -63,14 +63,38 @@ class Window:
                     r = weight
         return r
 
-    def show(self, network = None, timeout = None):
+    def set_layout(self, name):
+        """Sets the layout of the network window"""
+        
+        layouts = ('circle', 'tension')
+        self.reset_layout = True
+        
+        i = name
+        if isinstance(name, str):
+            if name in layouts:
+                i = layouts.index(name)
+            else:
+                raise ValueError(f'Layout "{name}" does not exist, see existing layouts: {layouts}')
+
+        self.layout = i
+        return i
+
+    def network_updated(self):
+        """Check for changes"""
+        self.max_weight = self.get_highest_weight()
+
+    def set_nework(self, network):
+        """New network opened, reset everything"""
+        self.net = network
+        self.reset_layout = True
+        self.network_updated()
+
+    def open(self, network = None, timeout = None):
         """Display a given network"""
 
         # new network value
         if network:
-            self.net = network
-            self.pos = None
-            self.update = True
+            self.set_nework(network)
 
         # timout?
         if timeout:
@@ -78,11 +102,11 @@ class Window:
         else:
             self.timeout = None
         
-        self.max_weight = self.get_highest_weight()
-        self.open()
+        self.network_updated()
+        self.show()
 
-    def open(self):
-        """Open rendering window"""
+    def show(self):
+        """Show rendering window"""
 
         # new root
         self.root = tk.Tk()
@@ -338,8 +362,10 @@ class Window:
         vx = tarx-basex
         vy = tary-basey
         mag = math.sqrt(vx*vx + vy*vy)
-        if mag<.0001:
-            mag = .0001
+
+        # skip edge if its length will be negative
+        if mag < shrink*2:
+            return (basex+tarx)/2, (basey+tary)/2
 
         # unit vector
         vdx = vx/mag
@@ -443,13 +469,15 @@ class Window:
                             continue
 
                     if x == y:
-                        lx,ly = self.draw_self_edge(ax,ay, weight)
+                        label_pos = self.draw_self_edge(ax,ay, weight)
                     else:
                         bx = layout[x][0]
                         by = layout[x][1]
                         
-                        lx,ly = self.draw_edge(ax,ay, bx,by, weight, rint)
-                    labels.append((lx, ly, weight))
+                        label_pos = self.draw_edge(ax,ay, bx,by, weight, rint)
+                    
+                    if label_pos != None:
+                        labels.append((*label_pos, weight))
 
         # draw edges weight labels
         for x,y, text in labels:
@@ -479,27 +507,41 @@ class Window:
         if best_mag < threshold:
             return best_i
 
+    def layout_tension_bake(self, steps = 200):
+        """Bake a tension layout from scratch, with a given amount of steps"""
+
+        # start layout
+        self.pos = self.layout_circle()
+        self.network_updated()
+        self.reset_layout = False
+        self.layout = 1
+        
+        for i in range(steps):
+            self.layout_tension_step(self.pos)
+
     def refresh(self):
         """Refresh the canvas entirely"""
-        
+
+        # clear canvas
         self.canvas.delete('all')
+
+        # refresh layout
+        reset = self.reset_layout or self.pos == None
+        self.reset_layout = False
         
         if self.layout==0:
             # circle
-            if self.pos == None:
+            if reset:
                 self.pos = self.layout_circle()
-        else:
+        elif self.layout==1:
             # tension
-            if self.pos == None:
+            if reset:
                 self.pos = self.layout_circle()
             self.layout_tension_step(self.pos)
 
         # get selected node
         self.sel_node = None
-        if self.drag_node:
-            if self.drag_node in self.pos:
-                self.sel_node = self.pos.index(self.drag_node)
-        else:
+        if not self.drag_node:
             self.sel_node = self.get_hovered_node(self.pos)
 
         # render everything
@@ -507,13 +549,12 @@ class Window:
         self.draw_edges(self.pos)
 
 
-        """
-        # draw overlay selected
-        if self.sel_node != None:
-            self.fill_dim()
-            self.draw_layout_node(self.pos[self.sel_node])
-            self.draw_edges(self.pos, self.sel_node)
-        """
+        if self.sel_overlay:
+            # draw overlay selected
+            if self.sel_node != None:
+                self.fill_dim()
+                self.draw_layout_node(self.pos[self.sel_node])
+                self.draw_edges(self.pos, self.sel_node)
         
     def fill_dim(self):
         """Dim out the current render (alpha 25%)"""
