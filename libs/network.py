@@ -168,22 +168,23 @@ class Graphe:
 if __name__ == '__main__':
     graphe = Graphe(sommets_g1, aretes_g1)
     win = Window(graphe)
-    win.layout = 0
     
-    win.show(graphe)
-    graphe.show()
+    #win.show(graphe)
+    #graphe.show()
     
     graphe.remove_point_name('F')
-    win.show(graphe,2)
+    #win.show(graphe,2)
     
     graphe.add_point('D', 27)
-    win.show(graphe,2)
+    #win.show(graphe,2)
     
     graphe.edit_edge_name('C','A', 5)
     graphe.edit_edge_name('E','A', 2)
     graphe.edit_edge_name('E','D', 1)
-    win.show(graphe,2)
+    #win.show(graphe,2)
     graphe.edit_edge_name('D','B', 12)
     graphe.edit_edge_name('D','D', 4)
+    win.show(graphe)
+    win.layout = 1
     win.show(graphe)
     graphe.show()

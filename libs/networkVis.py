@@ -12,18 +12,29 @@ class Window:
         """Create a new window given the graph"""
         self.net = network
 
-        self.dark_mode = False
-        self.default_palette()
-        
+        # Settings
         self.always_refresh = True
-        self.run = False
-
+        self.dark_mode = False
         self.layout = 0
-        self.node_distance = 1
-
+        self.tension_force = 20
+        self.tension_exponent = 1
+        self.tension_distance = 1
+        self.tension_distance_min = .15
+        self.tension_safe_zone = .1
+        
         self.font = 'Arial'
         self.font_scale = .1
         self.node_scale = .07
+        self.edge_label_scale = .5
+        self.edge_label_outline = 3
+        
+
+        # Defaults
+        self.default_palette()
+        
+        self.run = False
+        self.update = True
+        self.drag_node = None
 
         self.mx = 0
         self.my = 0
@@ -54,13 +65,19 @@ class Window:
 
     def show(self, network = None, timeout = None):
         """Display a given network"""
+
+        # new network value
         if network:
             self.net = network
             self.pos = None
+            self.update = True
+
+        # timout?
         if timeout:
             self.timeout = time.time()+timeout
         else:
             self.timeout = None
+        
         self.max_weight = self.get_highest_weight()
         self.open()
 
@@ -85,19 +102,37 @@ class Window:
         # events
         self.root.bind("<Configure>", self.on_window_resize)
         self.root.bind('<Motion>', self.on_motion)
+        self.root.bind("<ButtonPress-1>", self.on_mouse_down)
+        self.root.bind("<ButtonRelease-1>", self.on_mouse_up)
 
         self.loop()
 
     def loop(self):
         self.run = True
+        
         while self.run:
             self.root.update_idletasks()
             self.root.update()
+
+            # dragged node
+            if self.drag_node != None:
+                self.drag_node[0] = (self.mx + self.drag_dx) / self.vw
+                self.drag_node[1] = (self.my + self.drag_dy) / self.vh
+
+                # refresh viewport if not by default
+                if not self.always_refresh:
+                    self.refresh()
+
+            # refresh viewport
             if self.always_refresh:
                 self.refresh()
+
+            # window timed out?
             if self.timeout:
                 if time.time() > self.timeout:
                     self.run = False
+
+        # end
         if self.root:
             self.root.destroy()
 
@@ -114,13 +149,14 @@ class Window:
         h = elem.winfo_height()
         return h if h<w else w
     
-    def create_circle(self, canvas, x,y, r, fill = None):
+    def create_circle(self, canvas, x,y, r, fill):
         """Creates a circle of given x,y, radius and color"""
         
         x0 = x - r
         y0 = y - r
         x1 = x + r
         y1 = y + r
+        
         return self.canvas.create_oval(x0, y0, x1, y1,
                                   fill = fill,
                                   outline = '')
@@ -133,10 +169,12 @@ class Window:
             'bold'
         )
 
-    def draw_node(self, x,y, color = None, text = None, fontscale = 7):
+    def draw_node(self, x,y, text = None, color = None, fontscale = None):
         """Draws a node at x,y (px); optionnal: color, text, font_scale"""
         if not color:
             color = self.palette[1]
+        if not fontscale:
+            fontscale = 7
             
         size = self.min_size() * self.node_scale
         self.create_circle(self.canvas, x,y, size, color)
@@ -172,20 +210,22 @@ class Window:
             x = math.cos(angle)*rad + .5
             y = math.sin(angle)*rad + .5
             
-            res.append((x, y, name, weight))
+            res.append([x, y, name, weight])
         return res
 
     def calc_tension(self, x,y, res, layout, ix,iy, b):
         """Compute a tension between two nodes by the weight of their connection"""
         # Settings
-        speed = .05
-        length = .6 * self.node_distance
+        speed = .01 * self.tension_force
+        length = .6 * self.tension_distance
 
         weight = self.net.matrix[iy][ix]
         if weight == 0:
             return
         
         weight *= length / self.max_weight
+        if weight < self.tension_distance_min:
+            weight = self.tension_distance_min
 
         o = layout[b]
         vx = o[0]-x
@@ -197,26 +237,28 @@ class Window:
 
         tension = mag-weight
         sign = 1 if tension > 0 else -1
-        tension = tension**2 * sign * speed
+        tension = abs(tension**self.tension_exponent) * sign * speed
         res[0] += vx*tension
         res[1] += vy*tension
 
         # clamping
-        if res[0] < 0:
-            res[0] = 0
-        if res[1] < 0:
-            res[1] = 0
-        if res[0] > 1:
-            res[0] = 1
-        if res[1] > 1:
-            res[1] = 1
+        clamp = self.tension_safe_zone
+        if res[0] < clamp:
+            res[0] = clamp
+        if res[1] < clamp:
+            res[1] = clamp
+        if res[0] > 1-clamp:
+            res[0] = 1-clamp
+        if res[1] > 1-clamp:
+            res[1] = 1-clamp
             
 
 
     def layout_tension_step(self, layout):
-        """Returns the nodes layout solved by tension"""
+        """Affect the nodes layout solved by tension"""
 
-        res = []
+        # Cloning to avoid movement between calculations
+        new = []
         
         ma = len(layout)
         for i in range(ma):
@@ -232,8 +274,16 @@ class Window:
                 if iy!=i:
                     self.calc_tension(x,y, pos, layout, i,iy, iy)
             
-            res.append((*pos, name, weight))
-        return res
+            new.append(pos)
+
+        for i in range(ma):
+            pos = new[i]
+            node = layout[i]
+            
+            node[0] = pos[0]
+            node[1] = pos[1]
+        
+        return layout
         
 
     def draw_layout_node(self, node):
@@ -246,7 +296,7 @@ class Window:
         text = f'{name}\n{weight}'
         color = self.palette[2]
             
-        self.draw_node(px, py, color, text)
+        self.draw_node(px, py, text, color, None)
 
     def draw_nodes(self, layout):
         """Draws the nodes of the given layout onto the canvas"""
@@ -269,7 +319,7 @@ class Window:
         kwargs['fill'] = fill
         self.canvas.create_text(x, y, **kwargs)
         
-    def draw_edge(self, ax,ay, bx,by, weight, i=0, fontscale=.5):
+    def draw_edge(self, ax,ay, bx,by, weight, i=0):
         """Draw an arrow between two relative coords, optionnal overlap int and font scale"""
         mi = self.min_size()
 
@@ -319,20 +369,14 @@ class Window:
             arrow = tk.LAST
         )
 
-        # draw edge weight label
-        self.text_outline(
-            (basex+tarx)/2 + vdx*dir_offset + ox,
-            (basey+tary)/2 + vdy*dir_offset + oy,
-            outline,
-            
-            text = weight,
-            anchor  = 'center',
-            justify = 'center',
-            fill = self.palette[1],
-            font = self.get_font(fontscale),
-        )
+        label_x = (basex+tarx)/2 + vdx*dir_offset + ox
+        label_y = (basey+tary)/2 + vdy*dir_offset + oy
+
+        return label_x, label_y
 
     def draw_arc(self, cx,cy, radius, start_rad=0, end_rad=math.pi*2):
+        """Draw a circular arc at x,y with a given radius, with a start and end angle (radians)"""
+        
         samples = 50
         ox = None
         oy = None
@@ -355,7 +399,7 @@ class Window:
             ox = x
             oy = y
 
-    def draw_self_edge(self, x,y, weight, fontscale = .5):
+    def draw_self_edge(self, x,y, weight):
         outline = 3
         node_size = self.min_size() * self.node_scale
         
@@ -369,24 +413,15 @@ class Window:
         
         self.draw_arc(ox, oy, radius, angle_a, angle_b)
 
-        
-        # draw edge weight label
-        self.text_outline(
-            ox-radius, oy,
-            outline,
-            
-            text = weight,
-            anchor  = 'center',
-            justify = 'center',
-            fill = self.palette[1],
-            font = self.get_font(fontscale),
-        )
+        return ox-radius, oy
 
     def draw_edges(self, layout, sel_node = None):
         """Draws all edges or only those connected to the given node"""
         
         li_repeat = {}
         size = self.net.size()
+        labels = []
+        
         for y in range(size):
                 
             ax = layout[y][0]
@@ -408,12 +443,25 @@ class Window:
                             continue
 
                     if x == y:
-                        self.draw_self_edge(ax,ay, weight)
+                        lx,ly = self.draw_self_edge(ax,ay, weight)
                     else:
                         bx = layout[x][0]
                         by = layout[x][1]
-                    
-                        self.draw_edge(ax,ay, bx,by, weight, rint)
+                        
+                        lx,ly = self.draw_edge(ax,ay, bx,by, weight, rint)
+                    labels.append((lx, ly, weight))
+
+        # draw edges weight labels
+        for x,y, text in labels:
+            self.text_outline(
+                x, y, self.edge_label_outline,
+                
+                text = text,
+                anchor  = 'center',
+                justify = 'center',
+                fill = self.palette[1],
+                font = self.get_font(self.edge_label_scale),
+            )
 
     def get_hovered_node(self, layout):
         """Returns the index of the hovered node or None"""
@@ -435,26 +483,37 @@ class Window:
         """Refresh the canvas entirely"""
         
         self.canvas.delete('all')
-
-        layout = None
+        
         if self.layout==0:
             # circle
-            layout = self.layout_circle()
+            if self.pos == None:
+                self.pos = self.layout_circle()
         else:
             # tension
             if self.pos == None:
                 self.pos = self.layout_circle()
-            layout = self.layout_tension_step(self.pos)
-        self.pos = layout
+            self.layout_tension_step(self.pos)
 
-        self.draw_nodes(layout)
-        self.draw_edges(layout)
-        
-        i = self.get_hovered_node(layout)
-        if i!=None:
+        # get selected node
+        self.sel_node = None
+        if self.drag_node:
+            if self.drag_node in self.pos:
+                self.sel_node = self.pos.index(self.drag_node)
+        else:
+            self.sel_node = self.get_hovered_node(self.pos)
+
+        # render everything
+        self.draw_nodes(self.pos)
+        self.draw_edges(self.pos)
+
+
+        """
+        # draw overlay selected
+        if self.sel_node != None:
             self.fill_dim()
-            self.draw_layout_node(layout[i])
-            self.draw_edges(layout, i)
+            self.draw_layout_node(self.pos[self.sel_node])
+            self.draw_edges(self.pos, self.sel_node)
+        """
         
     def fill_dim(self):
         """Dim out the current render (alpha 25%)"""
@@ -468,14 +527,38 @@ class Window:
         
         self.vw = self.root.winfo_width()
         self.vh = self.root.winfo_height()
-        self.refresh()
 
-    def on_motion(self, e):
+        if not self.always_refresh:
+            self.refresh()
+
+    def on_motion(self, e = None):
         """Method called when the mouse is moved"""
+        if e:
+            self.mx = e.x
+            self.my = e.y
+
+        if not self.always_refresh:
+            self.refresh()
+
+    def on_mouse_down(self, e):
+        """LMB pressed"""
+        self.lmb = True
+        if self.pos:
+            i = self.get_hovered_node(self.pos)
+            if i != None:
+                # clicked node
+                node = self.pos[i]
+                self.drag_node = node
+                self.drag_dx = node[0]*self.vw-self.mx
+                self.drag_dy = node[1]*self.vh-self.my
+
+                self.on_motion(None)
+                
         
-        self.mx = e.x
-        self.my = e.y
-        self.refresh()
+    def on_mouse_up(self, e):
+        """LMB released"""
+        self.lmb = False
+        self.drag_node = None
 
         
         
