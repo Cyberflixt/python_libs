@@ -24,20 +24,17 @@ class Matrix:
         if self.size == None:
             # Size to array
             if isinstance(size, int):
-                if len(str(size))==2:
-                    size = str(size)
-                    size = (int(size[0]), int(size[1]))
-                else:
-                    size = (size, size)
+                size = (len(self.coords)//size, size)
             
             # Define size
             self.size = size
             return self
         else:
             # Get value
-            if not isinstance(size, int):
-                size = self.get_index(*size)
-            return self.coords[size]
+            if isinstance(size, int):
+                return self.coords[size]
+            
+            return self.coords[self.get_index(*size)]
 
     def __setitem__(self, i, v):
         if not isinstance(i, int):
@@ -109,26 +106,28 @@ class Matrix:
         return str(self)
 
     def __mul__(a,b):
-        ty =b.__class__.__name__
-        if ty=='int' or ty=='float':
+        if isinstance(b, int) or isinstance(b, float):
             r = Matrix([v*b for v in a.coords])[a.size]
 
+        elif isinstance(b, Matrix):
+            if a.size[1] != b.size[0]:
+                raise ValueError("Multiplying matrices: Matrix A column and B row amount need to be the same.")
+                
+            r = Matrix([0 for i in range(b.size[0]*b.size[1])])[b.size]
+            for y in range(b.size[0]):
+                col_b = y*b.size[1]
+                col_a = y*a.size[1]
+                for x in range(b.size[1]):
+                    for i in range(b.size[0]):
+                        r.coords[col_b+x] += a.coords[col_a+i] * b.coords[i*b.size[1]+x]
         else:
+            ty = b.__class__.__name__
             if ty=='Line':
                 b.a = a*b.a
                 b.b = a*b.b
                 return b
             else:
-                if a.size[1] != b.size[0]:
-                    raise Exception("Multiplying matrices: Matrix A column and B row amount need to be the same.")
-                
-                r = Matrix([0 for i in range(b.size[0]*b.size[1])])[b.size]
-                for y in range(b.size[0]):
-                    col_b = y*b.size[1]
-                    col_a = y*a.size[1]
-                    for x in range(b.size[1]):
-                        for i in range(b.size[0]):
-                            r.coords[col_b+x] += a.coords[col_a+i] * b.coords[i*b.size[1]+x]
+                raise ValueError(f'Matrix multiplication with {b} of type {ty} is not supported')
         return r
 
     def copy(self) -> 'Matrix':
@@ -146,8 +145,10 @@ class Matrix:
             col_b = y*b.size[1]
             for x in range(sy):
                 v = 0
+                # add A value if in matrix
                 if y<a.size[0] and x<a.size[1]:
                     v += a.coords[y*a.size[1]+x]
+                # add B value if in matrix
                 if y<b.size[0] and x<b.size[1]:
                     v += b.coords[y*b.size[1]+x]
                     
@@ -166,8 +167,10 @@ class Matrix:
             col_b = y*b.size[1]
             for x in range(sy):
                 v = 0
+                # add A value if in matrix
                 if y<a.size[0] and x<a.size[1]:
                     v += a.coords[y*a.size[1]+x]
+                # subtract B value if in matrix
                 if y<b.size[0] and x<b.size[1]:
                     v -= b.coords[y*b.size[1]+x]
                     
@@ -179,6 +182,12 @@ class Matrix:
         if isinstance(v, int) or isinstance(v, float):
             coords = [x/v for x in self.coords]   
             return Matrix(coords)[self.size]
+
+    def __pow__(self, v):
+        r = self
+        for i in range(v-1):
+            r *= r
+        return r
 
     def identity(i: int) -> 'Matrix':
         """Returns the identity matrix of dimension i"""
@@ -231,52 +240,18 @@ class Matrix:
 
     def euler(vec):
         """3D rotation matrix with given vectors for angles"""
-
-        #https://en.wikipedia.org/wiki/Rotation_matrix
+        # src: https://en.wikipedia.org/wiki/Rotation_matrix
         
         rx = self.euler_x(vec[0])
         ry = self.euler_y(vec[1])
         rz = self.euler_z(vec[2])
-
-        """
-        vx = vec[0]
-        vy = vec[1]
-        vz = vec[2]
-        
-        cosx = math.cos(vx)
-        sinx = math.sin(vx)
-
-        cosy = math.cos(vy)
-        siny = math.sin(vy)
-
-        cosz = math.cos(vz)
-        sinz = math.sin(vz)
-        
-        rx = Matrix(
-            1,    0,    0,
-            0, cosx,-sinx,
-            0, sinx, cosx,
-        )[3,3]
-        ry = Matrix(
-            cosy, 0, siny,
-            0,    1,    0,
-            -siny,0, cosy,
-        )[3,3]
-        rz = Matrix(
-            cosz,-sinz, 0,
-            sinz, cosz, 0,
-            0,       0, 1,
-        )[3,3]
-        """
 
         rotator = rz*ry*rx
         return rotator
 
     def inverse(self):
         """Returns the inverse matrix"""
-
-        # Source:
-        # https://www.researchgate.net/publication/220337322
+        # src: ttps://www.researchgate.net/publication/220337322
 
         if self.size[0] != self.size[1]:
             raise Exception('Can only get the inverse of a square matrix!')
@@ -284,11 +259,11 @@ class Matrix:
         coords = [*self.coords]
         size = self.size[0]
         
-        det = 1
+        #det = 1
         
         for p in range(size):
             pivot = coords[size*p+p]
-            det *= pivot
+            #det *= pivot
             
             if abs(pivot) < 1e-5:
                 return 0
@@ -307,7 +282,6 @@ class Matrix:
             coords[p*size+p] = 1/pivot
 
         inversed = Matrix(coords)[size,size]
-        #return det, inversed
         return inversed
 
     def axis_rad(axis, rad):
@@ -333,37 +307,98 @@ class Matrix:
             z*x*mcos-y*sin, z*y*mcos+x*sin, cos+uz*mcos   ,
         )[3,3]
 
-    def axis_angle(axis, deg):
+    def axis_deg(axis, deg):
         """Rotation matrix around an axis(x,y,z) of angle in DEGREES"""
         return Matrix.axis_rad(axis, math.radians(deg))
 
-"""
-a = Matrix(
-    0,1,2,
-    3,4,5,
-    6,7,8,
-)[3,3]
+    def remove_column(self, x: int):
+        """Removes a column from the matrix at a given abscissa"""
+        h,w = self.size
+        coords = []
+        
+        for i in range(len(self.coords)):
+            if i%w != x:
+                coords.append(self.coords[i])
+        return Matrix(coords)[h,w-1]
 
-b = Matrix(
-    1,2,
-    3,4,
-    5,6,
-)[3,2]
+    def remove_row(self, y: int):
+        """Removes a row from the matrix at a given ordinate"""
+        h,w = self.size
+        coords = []
+        
+        for i in range(len(self.coords)):
+            if i//w != y:
+                coords.append(self.coords[i])
+        return Matrix(coords)[h-1,w]
 
-i = Matrix.identity(3)
+    def __neg__(self):
+        coords = [-v for v in self.coords]
+        return Matrix(coords)[self.size]
 
-print(i * a)
-print(a.__class__.__name__)
-"""
+    def __floor__(self):
+        coords = [math.floor(v) for v in self.coords]
+        return Matrix(coords)[self.size]
 
-"""
-A = Matrix(
-     2, 1, 3,
-     1, 3,-3,
-    -2, 4, 4,
-)[3,3]
+    def __ceil__(self):
+        coords = [math.ceil(v) for v in self.coords]
+        return Matrix(coords)[self.size]
 
-print(A.inverse())
-"""
+    def __trunc__(self):
+        coords = [math.trunc(v) for v in self.coords]
+        return Matrix(coords)[self.size]
+
+    def __round__(self):
+        coords = [round(v) for v in self.coords]
+        return Matrix(coords)[self.size]
+
+    def __abs__(self):
+        coords = [abs(v) for v in self.coords]
+        return Matrix(coords)[self.size]
+
+    def __invert__(self):
+        coords = [~v for v in self.coords]
+        return Matrix(coords)[self.size]
+
+    def index(self, v):
+        return self.coords.index(v)
+
+
+
+if __name__ == '__main__':
+    a = Matrix(
+        0,1,2,
+        3,4,5,
+        6,7,8,
+    )[3,3]
+
+    b = Matrix(
+        1,2,
+        3,4,
+        5,6,
+        7,8,
+        9,10,
+    )[2]
+
+    print(-a)
+
+    i = Matrix.identity(3)
+
+    print('a',a)
+    print('I(3)*a',i * a)
+
+    A = Matrix(
+         2, 1, 3,
+         1, 3,-3,
+        -2, 4, 4,
+    )[3,3]
+
+    print('a^-1',A.inverse())
+
+    print('a*a',a*a)
+    print('a**2',a**2)
+    print('a**4',a**4)
+
+    print(a.remove_column(1))
+    print(a.remove_row(1))
 
 
