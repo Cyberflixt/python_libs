@@ -90,6 +90,33 @@ class Network:
         self.nodes = res
         return res
 
+    def get_links_dictionary(self):
+        """Get a dictionary containing nodes names, weight and connetions.
+        structure: {name: [{link_tar: link_weight}, weight]} --> eg: net = {'A': [{'B': 3}, 5]}"""
+        
+        di = {}
+        size = len(self.nodes)
+        names = self.node_names()
+        for y in range(size):
+            node, weight = self.nodes[y]
+            
+            # get links
+            links = {}
+            for x in range(size):
+                w = self.matrix[y][x]
+                if w != 0:
+                    links[names[x]] = w
+
+            # get free name
+            name = node
+            name_i = 0
+            while name in di:
+                name = str(node)+'_'+name_i
+                name_i += 1
+            di[name] = [links, weight]
+
+        return di
+
         
     def size(self):
         """Size of the network"""
@@ -262,7 +289,7 @@ class Network:
         return self.remove_edge(a,b)
         
     def show(self):
-        #old
+        """Depreciated"""
         G = nx.DiGraph()
         sommets = self.nodes
         matrice = self.matrix
@@ -315,8 +342,7 @@ def ex3():
     graphe.edit_edge_name('D','B', 12)
     graphe.edit_edge_name('D','D', 4)
     
-    win.layout_tension_bake()
-    win.show()
+    win.layout_tension_bake().show()
 
 
 
@@ -341,16 +367,18 @@ def testing():
     print(graphe.edges_names())
     print(graphe.path_depth(1))
     print(graphe.path_depth_by_name('B'))
+    print(graphe.get_links_dictionary())
 
-    win.open(graphe)
+    win.layout_tension_bake().show()
     print(graphe.remove_node(3))
     print(graphe.remove_node_name('C'))
     print(i:=graphe.add_node('Z', 16))
     print(graphe.edit_edge(i, 0, 8))
     print(graphe.edit_edge_by_name('Z', 'B', 9))
     print(graphe.remove_edge(0,1))
-    print(graphe.remove_edge_by_name('Z','A'))
-    win.open(graphe)
+    print(graphe.remove_edge_by_name('B','E'))
+    #win.layout_tension_bake().show()
+    win.open()
 
 
 

@@ -8,8 +8,8 @@ def perpendicular_vec(x,y):
     return y, -x
 
 class Window:
-    def __init__(self, network):
-        """Create a new window given the graph"""
+    def __init__(self, network = None):
+        """Creates a new window with a given graph"""
         self.net = network
 
         # Settings
@@ -21,39 +21,46 @@ class Window:
         self.tension_distance = 1
         self.tension_distance_min = .15
         self.tension_safe_zone = .1
+        self.tension_neutral = .005
         
         self.font = 'Arial'
         self.font_scale = .1
         self.node_scale = .07
         self.edge_label_scale = .5
         self.edge_label_outline = 3
+        self.arc_samples = 50
         
 
         # Defaults
-        self.default_palette()
+        self.palette = self.default_palette()
         
-        self.run = False
-        self.drag_node = None
-        self.reset_layout = True
-        self.layout = 0
         self.mx = 0
         self.my = 0
+        self.layout = 0
+        self.run = False
+        self.timeout = None
+        self.drag_node = None
+        self.reset_layout = True
+
+        self.create_root()
 
     def default_palette(self, dark = True):
+        """Get the default palette of the dark/light theme"""
         if dark:
-            self.palette = (
+            return (
                 '#202830', # bg
                 '#ffffff', # text
                 '#7800BD', # node
             )
-        else:
-            self.palette = (
+        else: # light
+            return (
                 '#ffffff', # bg
                 '#000000', # text
                 '#7EBCBD', # node
             )
 
-    def get_highest_weight(self):
+    def get_highest_link_weight(self):
+        """Returns the highest weight of all links"""
         s = self.net.size()
         r = 0
         for y in range(s):
@@ -79,9 +86,63 @@ class Window:
         self.layout = i
         return i
 
+    def update_layout_changes(self):
+        """Update network changes without affecting exisiting layout"""
+
+        # Check for deleted nodes
+        dels = []
+        for i in range(len(self.pos)):
+            x,y,name,weight = self.pos[i]
+            
+            # exists?
+            notfound = True
+            for elem in self.net.nodes:
+                if elem[0] == name and elem[1] == weight:
+                    notfound = False
+                    break
+
+            if notfound:
+                # deleted
+                print(f'del {self.pos[i]}')
+                dels.append(i)
+
+        # delete deleted nodes
+        for i in range(len(dels)):
+            index = dels[i]-i
+            del self.pos[index]
+            
+        
+
+        # Check for new nodes
+        offset = 0
+        for i in range(len(self.net.nodes)):
+            name, weight = self.net.nodes[i]
+
+            # exists?
+            notfound = True
+            for elem in self.pos:
+                if elem[2] == name and elem[3] == weight:
+                    notfound = False
+                    break
+
+            if notfound:
+                # added
+                print(f'new {name}, {weight}')
+                x = .5
+                y = .5
+                self.pos.insert(i, [x,y, name, weight])
+            
+            
+        
+
     def network_updated(self):
         """Check for changes"""
-        self.max_weight = self.get_highest_weight()
+        self.max_link_weight = self.get_highest_link_weight()
+
+        if self.pos:
+            # layout calculated, update
+            self.update_layout_changes()
+            
 
     def set_nework(self, network):
         """New network opened, reset everything"""
@@ -104,8 +165,9 @@ class Window:
         
         self.network_updated()
         self.show()
+        return self
 
-    def show(self):
+    def create_root(self, hide = True):
         """Show rendering window"""
 
         # new root
@@ -117,7 +179,7 @@ class Window:
         self.root.geometry(f'{int(w*fac)}x{int(h*fac)}')
         self.root.title('Network')
         self.root.focus_set()
-        self.root.protocol("WM_DELETE_WINDOW", self.close_event)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # canvas
         self.canvas = tk.Canvas(self.root, bg = self.palette[0], highlightthickness = 0)
@@ -129,7 +191,30 @@ class Window:
         self.root.bind("<ButtonPress-1>", self.on_mouse_down)
         self.root.bind("<ButtonRelease-1>", self.on_mouse_up)
 
+        self.on_window_resize(None)
+
+        if hide:
+            self.hide()
+
+    def show(self):
+        """Show rendering window"""
+
+        if self.root:
+            self.root.deiconify()
+            self.on_window_resize(None)
+        else:
+            self.create_root(False)
+            
         self.loop()
+
+    def hide(self):
+        if self.root:
+            self.root.withdraw()
+
+    def destroy(self):
+        if self.root:
+            self.root.destroy()
+            self.root = None
 
     def loop(self):
         self.run = True
@@ -155,13 +240,6 @@ class Window:
             if self.timeout:
                 if time.time() > self.timeout:
                     self.run = False
-
-        # end
-        if self.root:
-            self.root.destroy()
-
-    def close_event(self):
-        self.run = False
     
     def min_size(self, elem = None):
         """Minimum size of both elements axis"""
@@ -236,48 +314,51 @@ class Window:
             
             res.append([x, y, name, weight])
         return res
-
-    def calc_tension(self, x,y, res, layout, ix,iy, b):
+    
+    def calc_tension(self, pos, ax,ay, bx, by, weight):
         """Compute a tension between two nodes by the weight of their connection"""
         # Settings
         speed = .01 * self.tension_force
         length = .6 * self.tension_distance
 
-        weight = self.net.matrix[iy][ix]
-        if weight == 0:
-            return
-        
-        weight *= length / self.max_weight
-        if weight < self.tension_distance_min:
-            weight = self.tension_distance_min
-
-        o = layout[b]
-        vx = o[0]-x
-        vy = o[1]-y
-        
+        # Get unit vector
+        vx = bx-ax
+        vy = by-ay
+            
         mag = math.sqrt(vx*vx + vy*vy)
         if mag<.0001:
             mag = .0001
 
-        tension = mag-weight
-        sign = 1 if tension > 0 else -1
-        tension = abs(tension**self.tension_exponent) * sign * speed
-        res[0] += vx*tension
-        res[1] += vy*tension
+        # Link exists?
+        if weight == 0:
+            # small push force
+            force = speed * self.tension_neutral
+            pos[0] -= vx * force
+            pos[1] -= vy * force
+        else:
+            # tension between nodes weighted distance
+            weight *= length / self.max_link_weight
+            if weight < self.tension_distance_min:
+                weight = self.tension_distance_min
+
+            tension = mag-weight
+            sign = 1 if tension > 0 else -1
+            tension = abs(tension**self.tension_exponent) * sign * speed
+            pos[0] += vx*tension
+            pos[1] += vy*tension
 
         # clamping
-        clamp = self.tension_safe_zone
-        if res[0] < clamp:
-            res[0] = clamp
-        if res[1] < clamp:
-            res[1] = clamp
-        if res[0] > 1-clamp:
-            res[0] = 1-clamp
-        if res[1] > 1-clamp:
-            res[1] = 1-clamp
-            
-
-
+        clampx = self.tension_safe_zone * self.min_size()
+        clampy = self.tension_safe_zone * self.min_size()
+        if pos[0] < clampx:
+            pos[0] = clampx
+        if pos[1] < clampy:
+            pos[1] = clampy
+        if pos[0] > 1-clampx:
+            pos[0] = 1-clampx
+        if pos[1] > 1-clampy:
+            pos[1] = 1-clampy
+    
     def layout_tension_step(self, layout):
         """Affect the nodes layout solved by tension"""
 
@@ -286,17 +367,25 @@ class Window:
         
         ma = len(layout)
         for i in range(ma):
-            x,y, name, weight = layout[i]
-            pos = [x,y]
+            ax,ay, name, weight = layout[i]
+            pos = [ax,ay]
             
             # row
             for ix in range(ma):
                 if ix!=i:
-                    self.calc_tension(x,y, pos, layout, ix,i, ix)
+                    bx = layout[ix][0]
+                    by = layout[ix][1]
+                    bweight = self.net.matrix[ix][i]
+                    self.calc_tension(pos, ax,ay, bx,by, bweight)
+                    
             # column
             for iy in range(ma):
                 if iy!=i:
-                    self.calc_tension(x,y, pos, layout, i,iy, iy)
+                    bx = layout[iy][0]
+                    by = layout[iy][1]
+                    bweight = self.net.matrix[i][iy]
+                    self.calc_tension(pos, ax,ay, bx,by, bweight)
+                    
             
             new.append(pos)
 
@@ -308,7 +397,6 @@ class Window:
             node[1] = pos[1]
         
         return layout
-        
 
     def draw_layout_node(self, node):
         """Draws the nodes with a given layout result"""
@@ -403,7 +491,7 @@ class Window:
     def draw_arc(self, cx,cy, radius, start_rad=0, end_rad=math.pi*2):
         """Draw a circular arc at x,y with a given radius, with a start and end angle (radians)"""
         
-        samples = 50
+        samples = self.arc_samples
         ox = None
         oy = None
         for i in range(samples+1):
@@ -490,6 +578,8 @@ class Window:
                 fill = self.palette[1],
                 font = self.get_font(self.edge_label_scale),
             )
+        
+        return self
 
     def get_hovered_node(self, layout):
         """Returns the index of the hovered node or None"""
@@ -507,7 +597,7 @@ class Window:
         if best_mag < threshold:
             return best_i
 
-    def layout_tension_bake(self, steps = 200):
+    def layout_tension_bake(self, steps = 2000):
         """Bake a tension layout from scratch, with a given amount of steps"""
 
         # start layout
@@ -518,6 +608,7 @@ class Window:
         
         for i in range(steps):
             self.layout_tension_step(self.pos)
+        return self
 
     def refresh(self):
         """Refresh the canvas entirely"""
@@ -555,11 +646,12 @@ class Window:
                 self.fill_dim()
                 self.draw_layout_node(self.pos[self.sel_node])
                 self.draw_edges(self.pos, self.sel_node)
+        return self
         
     def fill_dim(self):
         """Dim out the current render (alpha 25%)"""
         
-        self.canvas.create_rectangle(
+        return self.canvas.create_rectangle(
             0, 0, self.vw, self.vh, fill = self.palette[0],
             stipple = 'gray75', outline = '')
 
@@ -594,6 +686,11 @@ class Window:
                 self.drag_dy = node[1]*self.vh-self.my
 
                 self.on_motion(None)
+
+    def on_close(self):
+        """Event window closed"""
+        self.run = False
+        self.hide()
                 
         
     def on_mouse_up(self, e):
