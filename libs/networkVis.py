@@ -21,7 +21,7 @@ class Window:
         self.tension_distance = 1
         self.tension_distance_min = .15
         self.tension_safe_zone = .1
-        self.tension_neutral = .005
+        self.tension_neutral = .01
         
         self.font = 'Arial'
         self.font_scale = .1
@@ -36,13 +36,17 @@ class Window:
         
         self.mx = 0
         self.my = 0
-        self.layout = 0
+        self.vh = 1080
+        self.vw = 1920
+        self.pos = None
         self.run = False
+        self.root = None
+        self.layout = 0
         self.timeout = None
         self.drag_node = None
         self.reset_layout = True
 
-        self.create_root()
+        #self.create_root()
 
     def default_palette(self, dark = True):
         """Get the default palette of the dark/light theme"""
@@ -102,8 +106,7 @@ class Window:
                     break
 
             if notfound:
-                # deleted
-                print(f'del {self.pos[i]}')
+                # deleted node
                 dels.append(i)
 
         # delete deleted nodes
@@ -126,8 +129,7 @@ class Window:
                     break
 
             if notfound:
-                # added
-                print(f'new {name}, {weight}')
+                # added node
                 x = .5
                 y = .5
                 self.pos.insert(i, [x,y, name, weight])
@@ -139,33 +141,16 @@ class Window:
         """Check for changes"""
         self.max_link_weight = self.get_highest_link_weight()
 
-        if self.pos:
-            # layout calculated, update
-            self.update_layout_changes()
+        # layout calculated, update
+        if not self.pos:
+            self.layout_step(True)
+        self.update_layout_changes()
             
 
     def set_nework(self, network):
         """New network opened, reset everything"""
         self.net = network
         self.reset_layout = True
-        self.network_updated()
-
-    def open(self, network = None, timeout = None):
-        """Display a given network"""
-
-        # new network value
-        if network:
-            self.set_nework(network)
-
-        # timout?
-        if timeout:
-            self.timeout = time.time()+timeout
-        else:
-            self.timeout = None
-        
-        self.network_updated()
-        self.show()
-        return self
 
     def create_root(self, hide = True):
         """Show rendering window"""
@@ -191,20 +176,31 @@ class Window:
         self.root.bind("<ButtonPress-1>", self.on_mouse_down)
         self.root.bind("<ButtonRelease-1>", self.on_mouse_up)
 
-        self.on_window_resize(None)
-
         if hide:
             self.hide()
 
-    def show(self):
+    def show(self, network = None, **kwargs):
         """Show rendering window"""
+        
+        # new network value
+        if network:
+            self.set_nework(network)
 
+        # timeout?
+        if 'time' in kwargs:
+            self.timeout = time.time()+kwargs['time']
+        else:
+            self.timeout = None
+
+        # open/create window
         if self.root:
             self.root.deiconify()
             self.on_window_resize(None)
+            self.root.focus_set()
         else:
             self.create_root(False)
-            
+        
+        self.network_updated()
         self.loop()
 
     def hide(self):
@@ -218,7 +214,7 @@ class Window:
 
     def loop(self):
         self.run = True
-        
+        self.kill_on_end = True
         while self.run:
             self.root.update_idletasks()
             self.root.update()
@@ -240,6 +236,11 @@ class Window:
             if self.timeout:
                 if time.time() > self.timeout:
                     self.run = False
+                    self.kill_on_end = False
+                    
+        if self.kill_on_end:
+            if self.root:
+                self.destroy()
     
     def min_size(self, elem = None):
         """Minimum size of both elements axis"""
@@ -332,7 +333,7 @@ class Window:
         # Link exists?
         if weight == 0:
             # small push force
-            force = speed * self.tension_neutral
+            force = speed * self.tension_neutral / len(self.pos)
             pos[0] -= vx * force
             pos[1] -= vy * force
         else:
@@ -348,8 +349,10 @@ class Window:
             pos[1] += vy*tension
 
         # clamping
-        clampx = self.tension_safe_zone * self.min_size()
-        clampy = self.tension_safe_zone * self.min_size()
+        min_size = self.min_size()
+        clampx = self.tension_safe_zone * min_size / self.vw
+        clampy = self.tension_safe_zone * min_size / self.vh
+        
         if pos[0] < clampx:
             pos[0] = clampx
         if pos[1] < clampy:
@@ -610,16 +613,8 @@ class Window:
             self.layout_tension_step(self.pos)
         return self
 
-    def refresh(self):
-        """Refresh the canvas entirely"""
-
-        # clear canvas
-        self.canvas.delete('all')
-
-        # refresh layout
-        reset = self.reset_layout or self.pos == None
-        self.reset_layout = False
-        
+    def layout_step(self, reset = True):
+        """Compute first or next layout positions"""
         if self.layout==0:
             # circle
             if reset:
@@ -629,6 +624,17 @@ class Window:
             if reset:
                 self.pos = self.layout_circle()
             self.layout_tension_step(self.pos)
+
+    def refresh(self):
+        """Refresh the canvas entirely"""
+
+        # clear canvas
+        self.canvas.delete('all')
+
+        # refresh layout
+        reset = self.reset_layout or self.pos == None
+        self.reset_layout = False
+        self.layout_step(reset)
 
         # get selected node
         self.sel_node = None
@@ -690,7 +696,7 @@ class Window:
     def on_close(self):
         """Event window closed"""
         self.run = False
-        self.hide()
+        self.kill_on_end = True
                 
         
     def on_mouse_up(self, e):

@@ -1,43 +1,27 @@
 
-import networkx as nx
-import matplotlib.pyplot as plt
-import pylab as P
-
-from networkVis import Window
-
-sommets_g1 = [['A', 9], ['B', 34], ['C',  18], ['E', 86], ['F', 20]]
-
-sommets_dict = {'A': 9, 'B': 34, 'C': 18, 'E': 86, 'F': 20}
-
-aretes_g1 =[[0 , 8 , 3 , 0 , 0],
-            [0 , 0 , 7 , 0 , 0], 
-            [0 , 0 , 0 , 6 , 9],
-            [0 , 0 , 0 , 0 , 0],
-            [5 , 0 , 0 , 0 , 0]]
-
-G = { 'A' : [ { 'B' : 3 , 'E' : 8 } , 13 ] ,
-
-      'B' : [ { 'A' : 7 , 'C' : 5 , 'E' : 2 } , 28 ]  ,
-
-      'C' : [ { 'D' : 3 } , 17 ] ,
-
-      'D' : [ { 'D' : 1 } , 16 ] ,
-
-      'E' : [ { 'B' : 6 } , 14 ] }
+from libs.networkVis import Window
 
 class Network:
-    def __init__(self, nodes, matrix = None):
+    def __init__(self, nodes = None, matrix = None):
         """Creates a new network with a given structure"""
         
         self.nodes = nodes
         self.matrix = matrix
+        self.win = None
 
-        if isinstance(nodes, dict):
+        if nodes == None:
+            self.clear()
+        elif isinstance(nodes, dict):
             if matrix == None:
                 self.nodes_and_matrix_by_dict(nodes)
             else:
                 self.nodes_by_dict_weight(nodes)
-                
+
+    def clear(self):
+        """Clear out all nodes and links"""
+        self.nodes = []
+        self.matrix = []
+        
     def nodes_by_dict_weight(self, d):
         """Nodes by structure {name:weight} --> eg: nodes = {'A': 5, 'B': 2}"""
         res = []
@@ -252,7 +236,7 @@ class Network:
             del line[i]
         
 
-    def remove_node_name(self, name):
+    def remove_node_by_name(self, name):
         """Removes a node by name"""
         return self.remove_node(self.node_index(name))
 
@@ -267,15 +251,15 @@ class Network:
             line.append(0)
         return size
 
-    def edit_edge(self, a, b, poids = 0):
+    def edit_edge(self, a, b, weight = 0):
         """Edit the weight of the edge between 2 nodes"""
-        self.matrix[a][b] = poids
+        self.matrix[a][b] = weight
 
-    def edit_edge_by_name(self, a, b, poids = 0):
+    def edit_edge_by_name(self, a, b, weight = 0):
         """Edit the weight of the edge between 2 node names"""
         a = self.node_index(a)
         b = self.node_index(b)
-        return self.edit_edge(a, b, poids)
+        return self.edit_edge(a, b, weight)
 
     def remove_edge(self, a,b):
         """Removes an edge between 2 nodes"""
@@ -287,102 +271,20 @@ class Network:
         a = self.node_index(a)
         b = self.node_index(b)
         return self.remove_edge(a,b)
-        
-    def show(self):
-        """Depreciated"""
-        G = nx.DiGraph()
-        sommets = self.nodes
-        matrice = self.matrix
-        n = len(sommets)
-        for som in sommets:
-            if len(som)>1:
-                G.add_node(som[0],name=som[0],weight=som[1])
-            else:
-                G.add_node(som)
-        la=[]
 
-        for i in range(n):
-            for j in range(n):
-                if matrice[i][j]:
-                    la.append([sommets[i],sommets[j],matrice[i][j]])
+    def get_window(self):
+        """Gets or creates a window object"""
+        if not self.win:
+            self.win = Window(self)
+        return self.win
 
-        for aa in la:
-            G.add_edge(aa[0][0], aa[1][0],weight=aa[2])
-            
-        edge_lab = nx.get_edge_attributes(G,'weight')
-        node_list= nx.get_node_attributes(G,'weight')
-        node_lab = {nam:str(nam)+'\n'+str(wei) for nam,wei in node_list.items() }
-        pos = nx.circular_layout(G)
-        nx.draw(G, pos=pos,with_labels=False,node_size=1500,node_color='green')
-        nx.draw_networkx_labels(G,pos,labels=node_lab, font_weight='bold')
-        nx.draw_networkx_edge_labels(G,pos,edge_labels=edge_lab,label_pos=0.5)
-        P.show()
+    def show(self, *args, **kwargs):
+        """Show and gets a window object"""
+        win = self.get_window()
+        win.show(*args, **kwargs)
+        return win
 
-
-
-
-
-
-
-def ex3():
-    graphe = Network(sommets_dict, aretes_g1)
-    win = Window(graphe)
-    
-    graphe.show()
-    win.open(graphe)
-    
-    graphe.remove_node_name('F')
-    
-    graphe.add_node('D', 27)
-    
-    graphe.edit_edge_name('C','A', 5)
-    graphe.edit_edge_name('E','A', 2)
-    graphe.edit_edge_name('E','D', 1)
-    
-    graphe.edit_edge_name('D','B', 12)
-    graphe.edit_edge_name('D','D', 4)
-    
-    win.layout_tension_bake().show()
-
-
-
-def testing():
-    graphe = Network(G)
-    win = Window(graphe)
-    win.set_layout('tension')
-    
-    print(graphe.size())
-    print(graphe.is_neighbor(1,2))
-    print(graphe.is_neighbor_by_name('B','C'))
-    print(graphe.neighbors_int(1))
-    print(graphe.neighbors_int_by_name('B'))
-    print(graphe.neighbors(1))
-    print(graphe.neighbors_by_name('B'))
-    print(graphe.neighbors_names_by_name('B'))
-    print(graphe.nodes_edges(1))
-    print(graphe.nodes_edges_by_name('B'))
-    print(graphe.nodes_edges_name_by_name('B'))
-    print(graphe.node_names())
-    print(graphe.edges())
-    print(graphe.edges_names())
-    print(graphe.path_depth(1))
-    print(graphe.path_depth_by_name('B'))
-    print(graphe.get_links_dictionary())
-
-    win.layout_tension_bake().show()
-    print(graphe.remove_node(3))
-    print(graphe.remove_node_name('C'))
-    print(i:=graphe.add_node('Z', 16))
-    print(graphe.edit_edge(i, 0, 8))
-    print(graphe.edit_edge_by_name('Z', 'B', 9))
-    print(graphe.remove_edge(0,1))
-    print(graphe.remove_edge_by_name('B','E'))
-    #win.layout_tension_bake().show()
-    win.open()
-
-
-
-if __name__ == '__main__':
-    testing()
-
-
+    def set_layout(self, *args, **kwargs):
+        win = self.get_window()
+        win.set_layout(*args, **kwargs)
+        return win
