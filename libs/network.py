@@ -16,6 +16,90 @@ class Network:
                 self.nodes_and_matrix_by_dict(nodes)
             else:
                 self.nodes_by_dict_weight(nodes)
+        elif isinstance(nodes, str):
+            self.graph_quick_string(nodes)
+
+        if matrix:
+            if isinstance(self.matrix[0], list):
+                # matrix is multi-line
+                self.matrix_multi = True
+            else:
+                self.matrix_multi = False
+
+    def from_quick_links(self, s, sep=';'):
+        s = s.replace('\n','').replace(' ',sep)
+        arr = s.split(sep)
+        size = len(arr)//3
+        names = []
+        nodes = []
+        matrix = [[0 for x in range(size)] for y in range(size)]
+
+        # nodes
+        for i in range(size):
+            a = arr[i*3]
+            b = arr[i*3+2]
+            if not(a in names):
+                names.append(a)
+                nodes.append([a, 0])
+            if not(b in names):
+                names.append(b)
+                nodes.append([b, 0])
+        
+        for i in range(size):
+            a = arr[i*3]
+            cost = int(arr[i*3+1])
+            b = arr[i*3+2]
+
+            ia = names.index(a)
+            ib = names.index(b)
+            matrix[ia][ib] = cost
+            matrix[ib][ia] = cost
+
+        self.nodes = nodes
+        self.matrix = matrix
+
+            
+        
+
+    def graph_quick_string(self, s, sep=';'):
+        s = s.replace('\n','').replace(' ',sep)
+        arr = s.split(sep)
+        nodes = []
+        names = []
+
+        # nodes
+        for elem in arr:
+            a = elem[0]
+            names.append(a)
+            nodes.append([a, 0])
+        size = len(nodes)
+        matrix = [[0 for x in range(size)] for y in range(size)]
+
+        # links
+        for elem in arr:
+            if len(elem)>1:
+                a = elem[0]
+                ia = names.index(a)
+                for b in elem[1:]:
+                    ib = names.index(b)
+                    matrix[ia][ib] = 1
+                    matrix[ib][ia] = 1
+                    
+        self.matrix = matrix
+        self.nodes = nodes
+                
+
+    def undirected(self):
+        """Transforms the given graph data to an undirected one"""
+        size = self.size()
+        for y in range(size):
+            for x in range(y):
+                v = self.matrix[x][y]
+                if v!=0:
+                    self.matrix[y][x] = v
+                else:
+                    self.matrix[x][y] = self.matrix[y][x]
+        return self
 
     def clear(self):
         """Clear out all nodes and links"""
@@ -61,7 +145,7 @@ class Network:
             weight = 0
             if isinstance(v, dict):
                 # only links, no weight
-                self.node_links_by_dict(elem, names, i)
+                self.node_links_by_dict(v, names, i)
             else:
                 # list
                 for elem in v:
@@ -208,7 +292,7 @@ class Network:
 
     def path_depth(self, node_i, li = None):
         """Returns the indices of nodes in the depth path started from a given node's index"""
-        if li == None:
+        if li == None: # no funky default arg problems
             li = []
         
         li.append(node_i)
@@ -222,6 +306,26 @@ class Network:
         i = self.node_index(name)
         li = self.path_depth(i)
         return [self.node_name(i) for i in li]
+
+    def path_exists(self, node_i, tar_i, li = None):
+        """Does a path exist between two nodes of given index"""
+        if li == None:
+            li = []
+        
+        for b in self.neighbors(node_i):
+            if b == tar_i:
+                return True
+            if not(b in li):
+                found = self.path_exists(b, tar_i, li)
+                if found:
+                    return True
+        return False
+
+    def path_exists_by_name(self, start_name, tar_name):
+        """Does a path exist between two nodes of given name"""
+        a = self.node_index(start_name)
+        b = self.node_index(tar_name)
+        return self.path_exists(a,b)
 
 
     def remove_node(self, i: int):
@@ -271,6 +375,65 @@ class Network:
         a = self.node_index(a)
         b = self.node_index(b)
         return self.remove_edge(a,b)
+    """
+    def path_cycle(self, node_i):
+        found = []
+        free = [node_i]
+        size = self.size()
+        while len(found) < size:
+            cur = free.pop()
+            for neigh in self.neighbors(cur):
+                if not(neigh in found):
+                    free.append(neigh)
+            if cur in found:
+                return True
+
+            found.append(cur)
+        return False
+    """
+
+    def path_cycle(self, node_i):
+        found = []
+        free = [node_i]
+        size = self.size()
+        while len(found) < size:
+            cur = free.pop(0)
+            
+            for neigh in self.neighbors(cur):
+                if neigh in found:
+                    return True
+                else:
+                    free.append(neigh)
+            
+            found.append(cur)
+        return False
+
+    def path_width(self, node_i):
+        search = [node_i]
+        found = []
+        size = self.size()
+        while len(search) > 0:
+            cur = search.pop(0)
+            found.append(cur)
+
+            for neigh in self.neighbors(cur):
+                if not(neigh in found) and not(neigh in search):
+                    search.append(neigh)
+        return found
+    
+    def path_width_by_name(self, name):
+        i = self.node_index(name)
+        return self.path_width(i)
+    
+    def path_width_names_by_name(self, name):
+        return [self.node_name(i) for i in self.path_width_by_name(name)]
+
+    def dijkstra(self, node_i):
+        cost = {node_i}
+        
+
+    """VISUAL"""
+    
 
     def get_window(self):
         """Gets or creates a window object"""

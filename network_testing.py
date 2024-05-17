@@ -1,5 +1,6 @@
 
 import random
+from libs.matrix import Matrix
 from libs.network import Network
 
 sommets_g1 = [['A', 9], ['B', 34], ['C',  18], ['E', 86], ['F', 20]]
@@ -11,6 +12,15 @@ aretes_g1 =[[0 , 8 , 3 , 0 , 0],
             [0 , 0 , 0 , 6 , 9],
             [0 , 0 , 0 , 0 , 0],
             [5 , 0 , 0 , 0 , 0]]
+
+aretes_ma = Matrix(0 , 8 , 3 , 0 , 0,
+                   0 , 0 , 7 , 0 , 0,
+                   0 , 0 , 0 , 6 , 9,
+                   0 , 0 , 0 , 0 , 0,
+                   5 , 0 , 0 , 0 , 0)[5]
+print(aretes_ma)
+
+B = [sommets_g1, aretes_g1]
 
 G = { 'A' : [ { 'B' : 3 , 'E' : 8 } , 13 ] ,
       'B' : [ { 'A' : 7 , 'C' : 5 , 'E' : 2 } , 28 ]  ,
@@ -45,7 +55,8 @@ def modif():
 
 
 def testing():
-    graphe = Network(G)
+    #graphe = Network(G)
+    graphe = Network(*B)
     win = graphe.get_window()
     win.set_layout('tension')
     
@@ -67,7 +78,9 @@ def testing():
     print(graphe.path_depth_by_name('B'))
     print(graphe.get_links_dictionary())
 
-    win.layout_tension_bake().show(time=3)
+    print('Cycle:',graphe.path_cycle(0))
+
+    win.layout_tension_bake().show()
 
     print(graphe.remove_node(3))
     win.show(time=.1)
@@ -95,8 +108,9 @@ def cloning():
             b = random.randint(0, len(names)-1)
             net.edit_edge(i, b, random.randint(1,9))
 
-    net.set_layout('tension')
-    net.show()
+    win = net.set_layout('tension')
+    win.layout_tension_bake().show()
 
 if __name__ == '__main__':
-    modif()
+    while True:
+        testing()

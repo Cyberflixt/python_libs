@@ -18,14 +18,14 @@ class Window:
         self.dark_mode = False
         self.tension_force = 20
         self.tension_exponent = 1
-        self.tension_distance = 1
+        self.tension_distance = .8
         self.tension_distance_min = .15
         self.tension_safe_zone = .1
         self.tension_neutral = .01
         
         self.font = 'Arial'
         self.font_scale = .1
-        self.node_scale = .07
+        self.node_scale = .05
         self.edge_label_scale = .5
         self.edge_label_outline = 3
         self.arc_samples = 50
@@ -407,8 +407,11 @@ class Window:
         
         px = x*self.vw
         py = y*self.vh
-            
-        text = f'{name}\n{weight}'
+
+        if weight == 0:
+            text = str(name)
+        else:
+            text = f'{name}\n{weight}'
         color = self.palette[2]
             
         self.draw_node(px, py, text, color, None)
@@ -434,7 +437,7 @@ class Window:
         kwargs['fill'] = fill
         self.canvas.create_text(x, y, **kwargs)
         
-    def draw_edge(self, ax,ay, bx,by, weight, i=0):
+    def draw_edge(self, ax,ay, bx,by, weight, i=0, arrow = True):
         """Draw an arrow between two relative coords, optionnal overlap int and font scale"""
         mi = self.min_size()
 
@@ -483,7 +486,7 @@ class Window:
             tary  - shrink_vy + oy,
             width = 2,
             fill  = self.palette[1],
-            arrow = tk.LAST
+            arrow = tk.LAST if arrow else None
         )
 
         label_x = (basex+tarx)/2 + vdx*dir_offset + ox
@@ -545,7 +548,12 @@ class Window:
             ay = layout[y][1]
             for x in range(size):
                 weight = self.net.matrix[y][x]
+                weight_opp = self.net.matrix[x][y]
                 if weight != 0:
+                    arrow = weight_opp != weight
+                    if not arrow:
+                        if x<y:
+                            continue
 
                     # increment repeat int
                     k = y*size+x if y>x else x*size+y
@@ -565,7 +573,7 @@ class Window:
                         bx = layout[x][0]
                         by = layout[x][1]
                         
-                        label_pos = self.draw_edge(ax,ay, bx,by, weight, rint)
+                        label_pos = self.draw_edge(ax,ay, bx,by, weight, rint, arrow)
                     
                     if label_pos != None:
                         labels.append((*label_pos, weight))
@@ -600,18 +608,20 @@ class Window:
         if best_mag < threshold:
             return best_i
 
-    def layout_tension_bake(self, steps = 2000):
+    def bake(self, steps = 2000):
         """Bake a tension layout from scratch, with a given amount of steps"""
 
-        # start layout
-        self.pos = self.layout_circle()
-        self.network_updated()
-        self.reset_layout = False
-        self.layout = 1
-        
-        for i in range(steps):
-            self.layout_tension_step(self.pos)
-        return self
+        if self.layout == 1:
+            # tension bake
+            self.network_updated()
+            if not self.pos:
+                self.pos = self.layout_circle()
+            self.reset_layout = False
+
+            # bake tension steps
+            for i in range(steps):
+                self.layout_tension_step(self.pos)
+            return self
 
     def layout_step(self, reset = True):
         """Compute first or next layout positions"""
