@@ -199,6 +199,7 @@ class Network:
         for i,li in enumerate(self.nodes):
             if li[0] == name:
                 return i
+        raise ValueError(f'The network node named "{name}" does not exist!')
 
     def is_neighbor(self, ia: int, ib: int):
         """Can a node of given index go to another node of given index"""
@@ -451,3 +452,4 @@ class Network:
         win = self.get_window()
         win.set_layout(*args, **kwargs)
         return win
+

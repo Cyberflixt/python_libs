@@ -714,6 +714,4 @@ class Window:
         self.lmb = False
         self.drag_node = None
 
-        
-        
-        
+
