@@ -111,7 +111,7 @@ class Matrix:
 
         elif isinstance(b, Matrix):
             if a.size[1] != b.size[0]:
-                raise ValueError("Multiplying matrices: Matrix A column and B row amount need to be the same.")
+                raise ValueError("Multiplying matrices: Matrix A column and B row lengths need to be the same.")
                 
             r = Matrix([0 for i in range(b.size[0]*b.size[1])])[b.size]
             for y in range(b.size[0]):
@@ -127,7 +127,16 @@ class Matrix:
                 b.b = a*b.b
                 return b
             else:
-                raise ValueError(f'Matrix multiplication with {b} of type {ty} is not supported')
+                # Handle as list or vector
+                if a.size[1] != len(b):
+                    raise ValueError("Multiplying matrices: Matrix A column and B length need to be the same.")
+
+                r = Matrix([0 for i in range(len(b))])[len(b), 1]
+                for y in range(len(b)):
+                    iy = y*a.size[1]
+                    for x in range(a.size[0]):
+                        r.coords[y] += a.coords[iy + x] * b[x]
+                return r
         return r
 
     def copy(self) -> 'Matrix':
@@ -242,9 +251,9 @@ class Matrix:
         """3D rotation matrix with given vectors for angles"""
         # src: https://en.wikipedia.org/wiki/Rotation_matrix
         
-        rx = self.euler_x(vec[0])
-        ry = self.euler_y(vec[1])
-        rz = self.euler_z(vec[2])
+        rx = Matrix.euler_x(vec[0])
+        ry = Matrix.euler_y(vec[1])
+        rz = Matrix.euler_z(vec[2])
 
         rotator = rz*ry*rx
         return rotator
@@ -378,6 +387,11 @@ if __name__ == '__main__':
         7,8,
         9,10,
     )[2]
+
+    
+    c = Matrix(1,2,3)[3,1]
+    print(c)
+    print(a * [1,2,3])
 
     print(-a)
 

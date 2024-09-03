@@ -1,5 +1,5 @@
 
-from libs.networkVis import Window
+from cyutils.networkVis import Window
 
 class Network:
     def __init__(self, nodes = None, matrix = None):

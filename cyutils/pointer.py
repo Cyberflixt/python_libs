@@ -1,5 +1,5 @@
 
-import Vector
+import cyutils.Vector
 
 class Pointer():
     def __init__(self, *args, **kwargs):

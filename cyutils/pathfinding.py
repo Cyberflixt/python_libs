@@ -1,5 +1,5 @@
 
-from libs.vectors import *
+from cyutils.vectors import *
 
 def pathfindingReconstruct(parents, v):
     res = [v]
