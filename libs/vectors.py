@@ -61,6 +61,9 @@ class Vector():
     def __ceil__(self):
         return Vector(*[math.ceil(v) for v in self.coords])
 
+    def __trunc__(self):
+        return Vector(*[math.trunc(v) for v in self.coords])
+
     def __floor__(self):
         return Vector(*[math.floor(v) for v in self.coords])
 
@@ -228,8 +231,9 @@ class Vector():
     def append(self, *values) -> Vector:
         """Appends one or multiple new coordinate(s) to the vector:
         -> self"""
-        self.coords += values
-        return self
+        a = self.copy()
+        a.coords += values
+        return a
 
     def magnitude(self, vector = None) -> float:
         """Length of a vector. *Optional: Give another vector to get the distance:
@@ -283,11 +287,16 @@ class Vector():
         """Cross product of 2 vectors:
         -> crossed: Vector"""
 
+        av = a.coords
+        bv = b.coords
+        
+        if len(a)==2:
+            return av[0]*bv[1] - av[1]*bv[0]
         if len(a)==3:
             return Vector(
-                a.y*b.z - a.z*b.y,
-                a.z*b.x - a.x*b.z,
-                a.x*b.y - a.y*b.x
+                av[1]*bv[2] - av[2]*bv[1],
+                av[2]*bv[0] - av[0]*bv[2],
+                av[0]*bv[1] - av[1]*bv[0]
                 )
         raise Exception(f'Tried computing the cross product of a vector of {len(a)} and {len(b)} dimensions!')
 
@@ -325,9 +334,10 @@ class Vector():
         """Returns a Vector with each highest components amongst given vectors:
         -> max: Vector"""
         maxVector = vectors[0].copy()
-        for vec in vectors[1:]:
+        for j in range(len(vectors)-1):
+            vec = vectors[j+1]
             for i in range(len(vec)):
-                if vec[i]>maxVector[i]:
+                if vec[i] > maxVector[i]:
                     maxVector[i] = vec[i]
         return maxVector
     
@@ -335,9 +345,10 @@ class Vector():
         """Returns a Vector with each highest components amongst given vectors:
         -> max: Vector"""
         minVector = vectors[0].copy()
-        for vec in vectors[1:]:
+        for j in range(len(vectors)-1):
+            vec = vectors[j+1]
             for i in range(len(vec)):
-                if vec[i]<minVector[i]:
+                if vec[i] < minVector[i]:
                     minVector[i] = vec[i]
         return minVector
 
@@ -371,69 +382,79 @@ class Vector():
 
     forward = [0,1]
 
-class Pointer():
-    def __init__(self, *args, **kwargs):
-        '''Create a Pointer with given Position and Rotation (radians)'''
-        if len(args)==1:
-            args = args[0]
-        
-        self.pos = Vector(args[0])
-        self.rot = args[1]
-        
-        for k in kwargs:
-            v = kwargs[k]
-            k = k.lower()
-            if isinstance(v,str):
-                v = v.lower()
-            
-            if k=='unit' and v=='deg':
-                self.deg = True
+if __name__ == '__main__':
+    a = Vector(1,2)
+    b = Vector(-2,0)
+    c = Vector(3,-1)
+    print('a =',a)
+    print('b =',b)
+    print('c =',c)
+    print('\n_________________')
+    print(a,'+',b,'=',a+b)
+    print(a,'-',b,'=',a-b)
+    print(a,'*',b,'=',a*b)
+    print(a,'/',b,'=',a/b)
+    print(a,'//',b,'=',a//b)
+    print(a,'%',2,'=',a%2)
+    print(a,'%',b,'=',a%b)
+    print(a,'**',2,'=',a**2)
+    print(a,'**',b,'=',a**b)
+    print('abs(a) =', abs(a))
+    print('cast bool(a) =', bool(a))
+    print('math.floor(a) =', math.floor(a))
+    print('math.trunc(a) =', math.trunc(a))
+    print('math.ceil(a) =', math.ceil(a))
+    print('round(a) =', round(a))
+    print('~a =', ~a)
+    print('str(a) =', str(a))
+    print('a.dot(b) =', a.dot(b))
+    print('a.cross(b) =', a.cross(b))
+    print('Vector(2,0,3).cross(Vector(5,2,0)) =', Vector(2,0,3).cross(Vector(5,2,0)))
+    print('a.angle(b) =', a.angle(b))
+    print('a.project(b) =', a.project(b))
+    print('a.orthogonal(b) =', a.orthogonal(b))
+    print('a.magnitude() =', a.magnitude())
+    print('a.magnitude(b) =', a.magnitude(b))
+    print('a.unit() =', a.unit())
+    print('a.append(5) =', a.append(5))
+    print('a.lerp(b, 0.5) =', a.lerp(b, 0.5))
+    print('a.bounds(c) =', a.bounds(c))
+    print('a.max(b,c) =', a.max(b,c))
+    print('a.min(b,c) =', a.min(b,c))
+    print('a.rotate(math.pi/2) =', a.rotate(math.pi/2))
+    print('a.rotateDeg(90) =', a.rotateDeg(90))
+    print('cast varToVec(a, 5) =', a.varToVec(5))
+    print('Vector.fromAngle(math.pi/2, 3) =', Vector.fromAngle(math.pi/2, 3))
+    print('Vector.fromDeg(90, 2) =', Vector.fromDeg(90, 2))
+
+    print('\n_________________')
+    print('Dynamic attribution')
+    print('a.x = -5\na[1] = 3')
+    a.x = -5
+    a[1] = 3
+    print('a =',a)
+    print('b.coords[0] = 1')
+    b.coords[0] = 1
+    print('b.coords =', b.coords)
     
-    # magic methods
+    print('\n_________________')
+    print('Comparison')
+    print(a>b)
+    print(a<b)
+    print(a>=b)
+    print(a<=b)
+    print(a and b)
+    print(a or b)
+
+    print('\n_________________')
+    print('Instancing')
+    print(Vector())
+    print(Vector(1))
+    print(Vector([1,2]))
+    print(Vector(Vector(1,2,3)))
+    print(Vector({'x': 1, 'y': 2, 'z': 3, 'w': 4}))
     
-    def __getitem__(self, k):
-        if k==0:
-            return self.pos
-        return self.rot
-
-    def __setitem__(self, k, val):
-        if k==0:
-            self.pos = val
-        else:
-            self.rot = val
-            
-    def __str__(self):
-        return f'Pointer(pos: {self.pos}, rot: {self.rot}))'
-    def __repr__(self):
-        return str(self)
-
-    # methods
-
-    def getRot(self):
-        if self.deg:
-            return math.radians(self.rot)
-        return self.rot
-
-    def move(self, vec):
-        self.pos += Vector(vec).rotate(self.getRot())
-        return self
-
-    def forward(self, v):
-        #self.move(Vector.forward)
-        self.pos += Vector.fromAngle(self.getRot(), v)
-        #self.pos += Vector.fromDeg(self.rot, v)
-        return self
-
-    def rotate(self, v):
-        self.rot += v
-        return self
-
-class PointerDeg():
-    def __init__(self, *args, **kwargs):
-        self = Pointer(*args, **kwargs, unit='deg')
-
-a = Vector(2,4)
-#b = Vector(3,8)
+    input()
 
 
 
