@@ -1,7 +1,7 @@
 
 import random
-from libs.matrix import Matrix
-from libs.network import Network
+from cyutils.matrix import Matrix
+from cyutils.network import Network
 
 nodes_a = [['A', 9], ['B', 34], ['C',  18], ['E', 86], ['F', 20]]
 

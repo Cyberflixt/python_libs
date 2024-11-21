@@ -1,7 +1,7 @@
 
 import tkinter as tk
-import libs.pathfinding as pathfinding
-from libs.vectors import *
+import cyutils.pathfinding as pathfinding
+from cyutils.vectors import *
 
 
 
