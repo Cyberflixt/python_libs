@@ -113,13 +113,13 @@ class Matrix:
             if a.size[1] != b.size[0]:
                 raise ValueError("Multiplying matrices: Matrix A column and B row lengths need to be the same.")
                 
-            r = Matrix([0 for i in range(b.size[0]*b.size[1])])[b.size]
-            for y in range(b.size[0]):
-                col_b = y*b.size[1]
-                col_a = y*a.size[1]
-                for x in range(b.size[1]):
-                    for i in range(b.size[0]):
-                        r.coords[col_b+x] += a.coords[col_a+i] * b.coords[i*b.size[1]+x]
+            r = Matrix([0 for i in range(a.size[0]*b.size[1])])[a.size[0], b.size[1]]
+            ri = 0
+            for y in range(a.size[0]): # Rows
+                for x in range(b.size[1]): # Columns
+                    for i in range(a.size[1]): # Sum
+                        r.coords[ri] += a.coords[y*a.size[1]+i] * b.coords[x+i*b.size[1]]
+                    ri += 1
         else:
             ty = b.__class__.__name__
             if ty=='Line':
@@ -374,6 +374,7 @@ class Matrix:
 
 
 if __name__ == '__main__':
+    """
     a = Matrix(
         0,1,2,
         3,4,5,
@@ -414,5 +415,17 @@ if __name__ == '__main__':
 
     print(a.remove_column(1))
     print(a.remove_row(1))
+    """
+
+
+    a = Matrix(1, 2, 3,
+               4, 5, 6
+               )[2,3]
+
+    b = Matrix(7, 8, 9,
+               10, 11, 12,
+               13, 14, 15)[3,3]
+
+    print(a*b)
 
 
