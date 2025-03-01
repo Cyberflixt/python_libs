@@ -33,7 +33,7 @@ class Ascii_Canvas:
         
         self.auto_clear = False
         self.fullscreen = True
-        self.chars = ['.',':','/','#']
+        self.chars = [' ','.',':','/','#']
 
         self.sens_rot = -5
         self.sens_move = 5
@@ -84,6 +84,9 @@ class Ascii_Canvas:
         move = Vector(x*fac, y*fac, z*fac)
 
         self.pos += inv*move
+
+        if kb.get('f'):
+            self.refresh_screen_size()
         
 
     def set_size(self, x=0, y=0):

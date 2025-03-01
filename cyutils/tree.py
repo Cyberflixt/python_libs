@@ -23,6 +23,16 @@ class Tree:
         
         return s
 
+    def depth(self):
+        d = -1
+        if self.a:
+            d = self.a.depth()
+        if self.b:
+            v = self.b.depth()
+            if v > d:
+                v = d
+        return 1+d
+
     def __str__(self):
         return self.text(0)
 
@@ -50,3 +60,4 @@ a = Tree(
 )
 
 print(a)
+print(a.depth())

@@ -1,5 +1,7 @@
 
 from cyutils.ascii.ascii3d import *
+import os
+import time
 
 ### SCENE
 
@@ -61,11 +63,12 @@ def vol_eval_triangle(x,y,z):
 def vol_eval_a(x,y,z):
     return math.cos(x+z)-math.cos(y)
 
-vol_a = scene + Volumetric(vol_eval_pyramide, (0,0,0), (5,5,5), 2)
-vol_b = scene + Volumetric(vol_eval_ball,    (10,0,0), (5,5,5), 2)
-vol_c = scene + Volumetric(vol_eval_triangle,(20,0,0), (5,5,5), 2)
+#vol_a = scene + Volumetric(vol_eval_pyramide, (0,0,0), (5,5,5), 2)
+#vol_b = scene + Volumetric(vol_eval_ball,    (10,0,0), (5,5,5), 2)
+#vol_c = scene + Volumetric(vol_eval_triangle,(20,0,0), (5,5,5), 2)
 
 def update(delta):
+    #time.sleep(.05)
     cube.rotate(Vector(delta, 0, delta))
     cube2.rotate(Vector(0, delta, 0))
 
@@ -74,6 +77,7 @@ def update(delta):
     scene.display_world_points_to_canvas(* cube.vertices)
     scene.display_world_points_to_canvas(* cube2.vertices)
     scene.display_world_points_to_canvas(* cube3.vertices)
+    os.system('cls')
     
 
 scene.update(update)

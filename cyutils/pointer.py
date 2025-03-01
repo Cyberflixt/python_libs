@@ -61,6 +61,3 @@ class Pointer():
 class PointerDeg():
     def __init__(self, *args, **kwargs):
         self = Pointer(*args, **kwargs, unit='deg')
-
-a = Vector(2,4)
-#b = Vector(3,8)
